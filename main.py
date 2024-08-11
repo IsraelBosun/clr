@@ -4,6 +4,14 @@ from io import BytesIO
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 @app.post("/angola/")
 async def process_angola_file(file: UploadFile = File(...)):
     try:
