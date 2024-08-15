@@ -80,6 +80,8 @@ async def process_Kenya_file(file: UploadFile = File(...)):
         sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL EXPOSURES(USD)'].sum()
         sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL EXPOSURES(USD)'].sum()
         sumof_contingent = df['TOTAL CONTINGENT EXPOSURES(USD)'].sum()
+        missed_repayments = df['MISSED INSTALLMENT'].sum() / 129
+        mrr = (missed_repayments / sumof_direct) * 100
         ppl = (sumof_stage1 / sumof_direct) * 100
         wpl = (sumof_stage2 / sumof_direct) * 100
         npl = (sumof_stage3 / sumof_direct) * 100
@@ -99,7 +101,8 @@ async def process_Kenya_file(file: UploadFile = File(...)):
             "wpl": wpl,
             "npl": npl,
             "fcy_direct": fcy_direct,
-            "fcy_total": fcy_total
+            "fcy_total": fcy_total,
+            "mrr": mrr,
         }
         return result
 
