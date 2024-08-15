@@ -97,6 +97,7 @@ async def process_Kenya_file(file: UploadFile = File(...)):
             "direct_exposure": sumof_direct,
             "contingent_exposure": sumof_contingent,
             "total_exposure": sumof_all,
+            "missed_repayments": missed_repayments,
             "ppl": ppl,
             "wpl": wpl,
             "npl": npl,
