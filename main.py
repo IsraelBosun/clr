@@ -196,9 +196,9 @@ async def process_Angola_file(file: UploadFile = File(...)):
         fcy_total_percentage = (fcy_total / sumof_all) * 100
 
         # Calculate the stages
-        sumof_stage1 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 1']['OUTSTANDING BALANCE \n(USD)'].sum()
-        sumof_stage2 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 2']['OUTSTANDING BALANCE \n(USD)'].sum()
-        sumof_stage3 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 3']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_stage1 = df[df['IFRS_CLASSIFICATION'] == 'Stage 1']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_stage2 = df[df['IFRS_CLASSIFICATION'] == 'Stage 2']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_stage3 = df[df['IFRS_CLASSIFICATION'] == 'Stage 3']['OUTSTANDING BALANCE \n(USD)'].sum()
         sumof_contingent = contingent_exp['OUTSTANDING BALANCE \n(USD)'].sum()
         missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
         mrr = (missed_repayments / sumof_direct) * 100
