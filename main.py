@@ -13,24 +13,24 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-@app.post("/angola")
-async def process_angola_file(file: UploadFile = File(...)):
-    try:
-        # Read the uploaded Excel file into a pandas DataFrame
-        content = await file.read()
-        df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=2)
+# @app.post("/angola")
+# async def process_angola_file(file: UploadFile = File(...)):
+#     try:
+#         # Read the uploaded Excel file into a pandas DataFrame
+#         content = await file.read()
+#         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=2)
 
-        # Perform the aggregation
-        pd.options.display.float_format = '{:,.2f}'.format
-        aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'OUTSTANDING BALANCE \n(USD)', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
-        top5_customers = aggregateed_data.sort_values(by='OUTSTANDING BALANCE \n(USD)', ascending=False).head(5)
+#         # Perform the aggregation
+#         pd.options.display.float_format = '{:,.2f}'.format
+#         aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'OUTSTANDING BALANCE \n(USD)', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
+#         top5_customers = aggregateed_data.sort_values(by='OUTSTANDING BALANCE \n(USD)', ascending=False).head(5)
 
-        # Convert the DataFrame to a dictionary for JSON response
-        result = top5_customers.to_dict(orient='records')
-        return {"top5_customers": result}
+#         # Convert the DataFrame to a dictionary for JSON response
+#         result = top5_customers.to_dict(orient='records')
+#         return {"top5_customers": result}
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
 
 
 
@@ -139,6 +139,67 @@ async def process_Ghana_file(file: UploadFile = File(...)):
         sumof_stage2 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 2']['OUTSTANDING BALANCE (USD)'].sum()
         sumof_stage3 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 3']['OUTSTANDING BALANCE (USD)'].sum()
         sumof_contingent = contingent_exp['OUTSTANDING BALANCE (USD)'].sum()
+        missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
+        mrr = (missed_repayments / sumof_direct) * 100
+        ppl = (sumof_stage1 / sumof_direct) * 100
+        wpl = (sumof_stage2 / sumof_direct) * 100
+        npl = (sumof_stage3 / sumof_direct) * 100
+
+        # Prepare the result dictionary
+        result = {
+            "top5_customers": top5_customers.to_dict(orient='records'),
+            "fcy_direct_percentage": fcy_direct_percentage,
+            "fcy_total_percentage": fcy_total_percentage,
+            "stage1_loans": sumof_stage1,
+            "stage2_loans": sumof_stage2,
+            "stage3_loans": sumof_stage3,
+            "direct_exposure": sumof_direct,
+            "contingent_exposure": sumof_contingent,
+            "total_exposure": sumof_all,
+            "missed_repayments": missed_repayments,
+            "ppl": ppl,
+            "wpl": wpl,
+            "npl": npl,
+            "fcy_direct": fcy_direct,
+            "fcy_total": fcy_total,
+            "mrr": mrr,
+        }
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
+
+
+
+@app.post("/angola")
+async def process_Angola_file(file: UploadFile = File(...)):
+    try:
+        # Read the uploaded Excel file into a pandas DataFrame
+        content = await file.read()
+        df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows = 2)
+
+        # Perform the aggregation for top 5 customers
+        pd.options.display.float_format = '{:,.2f}'.format
+        aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'OUTSTANDING BALANCE \n(USD)', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
+        top5_customers = aggregateed_data.sort_values(by='OUTSTANDING BALANCE \n(USD)', ascending=False).head(5)
+        print(df.columns)
+
+        # Calculate the FCY and percentages
+        ccy = df[df['CURRENCY_TYPE'] == 'FCY']
+        exposure_type = df[df['EXPOSURE_TYPE'] == 'DIRECT    ']
+        contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTINGENT']
+        fcy_direct = exposure_type[exposure_type['CURRENCY_TYPE'] == 'FCY']['OUTSTANDING BALANCE \n(USD)'].sum()
+        fcy_total = ccy['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_direct = exposure_type['OUTSTANDING BALANCE \n(USD)'].sum()         
+        sumof_all = df['OUTSTANDING BALANCE \n(USD)'].sum()
+        fcy_direct_percentage = (fcy_direct / sumof_direct) * 100
+        fcy_total_percentage = (fcy_total / sumof_all) * 100
+
+        # Calculate the stages
+        sumof_stage1 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 1']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_stage2 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 2']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_stage3 = df[df['IFRS_CLASSIFICATION'] == 'STAGE 3']['OUTSTANDING BALANCE \n(USD)'].sum()
+        sumof_contingent = contingent_exp['OUTSTANDING BALANCE \n(USD)'].sum()
         missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
         mrr = (missed_repayments / sumof_direct) * 100
         ppl = (sumof_stage1 / sumof_direct) * 100
