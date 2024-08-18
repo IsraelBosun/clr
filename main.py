@@ -13,26 +13,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# @app.post("/angola")
-# async def process_angola_file(file: UploadFile = File(...)):
-#     try:
-#         # Read the uploaded Excel file into a pandas DataFrame
-#         content = await file.read()
-#         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=2)
-
-#         # Perform the aggregation
-#         pd.options.display.float_format = '{:,.2f}'.format
-#         aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'OUTSTANDING BALANCE \n(USD)', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
-#         top5_customers = aggregateed_data.sort_values(by='OUTSTANDING BALANCE \n(USD)', ascending=False).head(5)
-
-#         # Convert the DataFrame to a dictionary for JSON response
-#         result = top5_customers.to_dict(orient='records')
-#         return {"top5_customers": result}
-
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
-
-
 
 @app.post("/botswana")
 async def process_Botswana_file(file: UploadFile = File(...)):
@@ -62,9 +42,9 @@ async def process_Kenya_file(file: UploadFile = File(...)):
         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=6)
 
         # Perform the aggregation for top 5 customers
-        pd.options.display.float_format = '{:,.2f}'.format
-        aggregated_data = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)','IFRS', 'CLASSIFICATION' ]].sum().reset_index()
+        aggregated_data = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)', 'IFRS', 'CLASSIFICATION']].sum().reset_index()
         top5_customers = aggregated_data.sort_values(by='TOTAL EXPOSURES(USD)', ascending=False).head(5)
+        top5_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] = top5_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] / 129
 
         # Calculate the FCY and percentages
         ccy = df[df['CURRENCY TYPE'] == 'FCY']
@@ -76,19 +56,34 @@ async def process_Kenya_file(file: UploadFile = File(...)):
         fcy_total_percentage = (fcy_total / sumof_all) * 100
 
         # Calculate the stages
-        sumof_stage1 = df[df['IFRS'] == 'STAGE 1']['TOTAL EXPOSURES(USD)'].sum()
-        sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL EXPOSURES(USD)'].sum()
-        sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL EXPOSURES(USD)'].sum()
+        sumof_stage1 = df[df['IFRS'] == 'STAGE 1']['TOTAL DIRECT EXPOSURES(USD)'].sum()
+        sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL DIRECT EXPOSURES(USD)'].sum()
+        sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL DIRECT EXPOSURES(USD)'].sum()
         sumof_contingent = df['TOTAL CONTINGENT EXPOSURES(USD)'].sum()
+        sumof_all = df['TOTAL EXPOSURES(USD)'].sum()
+
+        # Missed Repayments Calculation
         missed_repayments = df['MISSED INSTALLMENT'].sum() / 129
         mrr = (missed_repayments / sumof_direct) * 100
-        ppl = (sumof_stage1 / sumof_direct) * 100
-        wpl = (sumof_stage2 / sumof_direct) * 100
-        npl = (sumof_stage3 / sumof_direct) * 100
+
+        # Additional Calculations
+        sumof_top5 = top5_customers['TOTAL EXPOSURES(USD)'].sum()
+        time_loan = df['TERM LOAN'].sum() / 129
+        time_termLoan = df['TERM /TIME'].sum() / 129
+        percentageof_top5 = (sumof_top5 / sumof_all) * 100
+        percentageof_timeLoan = (time_loan / sumof_direct) * 100
+        percentageof_timeTermLoan = (time_termLoan / sumof_direct) * 100
+
+        # Aggregated Missed Customers Calculation
+        aggregated_missed = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)', 'MISSED INSTALLMENT']].sum().reset_index()
+        missed_customers = aggregated_missed.sort_values(by='MISSED INSTALLMENT', ascending=False).head(20)
+        missed_customers['MISSED INSTALLMENT'] = missed_customers['MISSED INSTALLMENT'] / 129
+        missed_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] = missed_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] / 129
 
         # Prepare the result dictionary
         result = {
             "top5_customers": top5_customers.to_dict(orient='records'),
+            "missed_customers": missed_customers.to_dict(orient='records'),
             "fcy_direct_percentage": fcy_direct_percentage,
             "fcy_total_percentage": fcy_total_percentage,
             "stage1_loans": sumof_stage1,
@@ -98,12 +93,15 @@ async def process_Kenya_file(file: UploadFile = File(...)):
             "contingent_exposure": sumof_contingent,
             "total_exposure": sumof_all,
             "missed_repayments": missed_repayments,
-            "ppl": ppl,
-            "wpl": wpl,
-            "npl": npl,
+            "ppl": (sumof_stage1 / sumof_direct) * 100,
+            "wpl": (sumof_stage2 / sumof_direct) * 100,
+            "npl": (sumof_stage3 / sumof_direct) * 100,
             "fcy_direct": fcy_direct,
             "fcy_total": fcy_total,
             "mrr": mrr,
+            "percentageof_top5": percentageof_top5,
+            "percentageof_timeLoan": percentageof_timeLoan,
+            "percentageof_timeTermLoan": percentageof_timeTermLoan,
         }
         return result
 
