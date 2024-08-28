@@ -22,70 +22,55 @@ async def process_Botswana_file(file: UploadFile = File(...)):
         # Read the uploaded Excel file into a pandas DataFrame
         content = await file.read()
         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=1)
-
-        # Perform the aggregation
-        pd.options.display.float_format = '{:,.2f}'.format
+    
+        # Aggregation for top 5 customers
         aggregated_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'CURRENT EXPOSURE (USD)', 'CLASSIFICATION', 'IFRS_CLASSIFICATION' ]].sum().reset_index()
         top5_customers = aggregated_data.sort_values(by='CURRENT EXPOSURE (USD)', ascending=False).head(5)
 
-        # Convert the DataFrame to a dictionary for JSON response
-        result = top5_customers.to_dict(orient='records')
-        return {"top5_customers": result}
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
-
-
-@app.post("/kenya")
-async def process_Kenya_file(file: UploadFile = File(...)):
-    try:
-        # Read the uploaded Excel file into a pandas DataFrame
-        content = await file.read()
-        df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=6)
-
-        # Perform the aggregation for top 5 customers
-        aggregated_data = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)', 'IFRS', 'CLASSIFICATION']].sum().reset_index()
-        top5_customers = aggregated_data.sort_values(by='TOTAL EXPOSURES(USD)', ascending=False).head(5)
-        top5_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] = top5_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] / 129
-
-        # Calculate the FCY and percentages
-        ccy = df[df['CURRENCY TYPE'] == 'FCY']
-        fcy_direct = ccy['TOTAL DIRECT EXPOSURES(USD)'].sum()
-        fcy_total = ccy['TOTAL EXPOSURES(USD)'].sum()
-        sumof_direct = df['TOTAL DIRECT EXPOSURES(USD)'].sum()
-        sumof_all = df['TOTAL EXPOSURES(USD)'].sum()
+    
+        # Calculate sums and percentages
+        ccy = df[df['CURRENCY_TYPE'].isin(['GBP', 'EUR', 'USD', 'ZAR'])]
+        direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT']
+        contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTINGENT']
+        missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
+        sumof_all = df['CURRENT EXPOSURE (USD)'].sum()
+        fcy_total = ccy['CURRENT EXPOSURE (USD)'].sum()
+        fcy_direct = direct_exp[direct_exp['CURRENCY_TYPE'] == 'FCY']['CURRENT EXPOSURE (USD)'].sum()
+        sumof_direct = direct_exp['CURRENT EXPOSURE (USD)'].sum()
+        sumof_contingent = contingent_exp['CURRENT EXPOSURE (USD)'].sum()
+        sumof_stage1 = direct_exp[direct_exp['IFRS_CLASSIFICATION'] == 1]['CURRENT EXPOSURE (USD)'].sum()
+        sumof_stage2 = direct_exp[direct_exp['IFRS_CLASSIFICATION'] == 2]['CURRENT EXPOSURE (USD)'].sum()
+        sumof_stage3 = direct_exp[direct_exp['IFRS_CLASSIFICATION'] == 3]['CURRENT EXPOSURE (USD)'].sum()
+    
         fcy_direct_percentage = (fcy_direct / sumof_direct) * 100
         fcy_total_percentage = (fcy_total / sumof_all) * 100
-
-        # Calculate the stages
-        sumof_stage1 = df[df['IFRS'] == 'STAGE 1']['TOTAL DIRECT EXPOSURES(USD)'].sum()
-        sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL DIRECT EXPOSURES(USD)'].sum()
-        sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL DIRECT EXPOSURES(USD)'].sum()
-        sumof_contingent = df['TOTAL CONTINGENT EXPOSURES(USD)'].sum()
-        sumof_all = df['TOTAL EXPOSURES(USD)'].sum()
-
-        # Missed Repayments Calculation
-        missed_repayments = df['MISSED INSTALLMENT'].sum() / 129
-        mrr = (missed_repayments / sumof_direct) * 100
-
-        # Additional Calculations
-        sumof_top5 = top5_customers['TOTAL EXPOSURES(USD)'].sum()
-        time_loan = df['TERM LOAN'].sum() / 129
-        time_termLoan = df['TERM /TIME'].sum() / 129
+        sumof_top5 = top5_customers['CURRENT EXPOSURE (USD)'].sum()
         percentageof_top5 = (sumof_top5 / sumof_all) * 100
-        percentageof_timeLoan = (time_loan / sumof_direct) * 100
-        percentageof_timeTermLoan = (time_termLoan / sumof_direct) * 100
-
-        # Aggregated Missed Customers Calculation
-        aggregated_missed = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)', 'MISSED INSTALLMENT']].sum().reset_index()
-        missed_customers = aggregated_missed.sort_values(by='MISSED INSTALLMENT', ascending=False).head(20)
-        missed_customers['MISSED INSTALLMENT'] = missed_customers['MISSED INSTALLMENT'] / 129
-        missed_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] = missed_customers['APPROVED TOTAL FACILITY AMOUNT/LIMIT'] / 129
-
+        ppl = (sumof_stage1 / sumof_direct) * 100
+        wpl = (sumof_stage2 / sumof_direct) * 100
+        npl = (sumof_stage3 / sumof_direct) * 100
+        mrr = (missed_repayments / sumof_direct) * 100
+    
+        # Aggregated data for missed repayments
+        aggregateed_missed = df.groupby('CUSTOMER_NAME')[['SECTOR', 'APPROVED AMOUNT (USD)', 'CURRENT EXPOSURE (USD)', 'UNPAID AMOUNT (USD)']].sum().reset_index()
+        missed_repayments_data = aggregateed_missed.sort_values(by='UNPAID AMOUNT (USD)', ascending=False).head(20)
+    
+        # Aggregated data for Stage 2
+        stage2_df = df[df['IFRS_CLASSIFICATION'] == 2]
+        stage2_grouped = stage2_df.groupby('CUSTOMER_NAME')[['APPROVED AMOUNT (USD)', 'CURRENT EXPOSURE (USD)']].sum().reset_index()
+        stage2_sorted = stage2_grouped.sort_values(by='CURRENT EXPOSURE (USD)', ascending=False)
+        top_20_stage2 = stage2_sorted.head(20)
+    
+        # Aggregated data by sector
+        aggregateed_sector = df.groupby('SECTOR')[['APPROVED AMOUNT (USD)', 'CURRENT EXPOSURE (USD)']].sum().reset_index()
+        sector_data = aggregateed_sector.sort_values(by='CURRENT EXPOSURE (USD)', ascending=False)
+    
         # Prepare the result dictionary
         result = {
             "top5_customers": top5_customers.to_dict(orient='records'),
-            "missed_customers": missed_customers.to_dict(orient='records'),
+            "missed_repayments_data": missed_repayments_data.to_dict(orient='records'),
+            "top_20_stage2": top_20_stage2.to_dict(orient='records'),
+            "sector_data": sector_data.to_dict(orient='records'),
             "fcy_direct_percentage": fcy_direct_percentage,
             "fcy_total_percentage": fcy_total_percentage,
             "stage1_loans": sumof_stage1,
@@ -95,21 +80,23 @@ async def process_Kenya_file(file: UploadFile = File(...)):
             "contingent_exposure": sumof_contingent,
             "total_exposure": sumof_all,
             "missed_repayments": missed_repayments,
-            "ppl": (sumof_stage1 / sumof_direct) * 100,
-            "wpl": (sumof_stage2 / sumof_direct) * 100,
-            "npl": (sumof_stage3 / sumof_direct) * 100,
+            "ppl": ppl,
+            "wpl": wpl,
+            "npl": npl,
             "fcy_direct": fcy_direct,
             "fcy_total": fcy_total,
             "mrr": mrr,
-            "percentageof_top5": percentageof_top5,
-            "percentageof_timeLoan": percentageof_timeLoan,
-            "percentageof_timeTermLoan": percentageof_timeTermLoan,
+            "percentage_of_top5": percentageof_top5,
         }
+    
         return result
-
+    
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"An error occurred: {str(e)}")
-
+            error_message = f"An error occurred: {str(e)}"
+            print(error_message)
+            print(traceback.format_exc())  # This will print the full stack trace
+            raise HTTPException(status_code=500, detail=error_message)
+    
 
 @app.post("/ghana")
 async def process_Ghana_file(file: UploadFile = File(...)):
@@ -186,11 +173,11 @@ async def process_Ghana_file(file: UploadFile = File(...)):
         return result
 
     except Exception as e:
-            error_message = f"An error occurred: {str(e)}"
-            print(error_message)
-            print(traceback.format_exc())  # This will print the full stack trace
-            raise HTTPException(status_code=500, detail=error_message)
-            
+        error_message = f"An error occurred: {str(e)}"
+        print(error_message)
+        print(traceback.format_exc())  # This will print the full stack trace
+        raise HTTPException(status_code=500, detail=error_message)
+        
 @app.post("/angola")
 async def process_Angola_file(file: UploadFile = File(...)):
     try:
@@ -204,7 +191,7 @@ async def process_Angola_file(file: UploadFile = File(...)):
     
         # Calculate sums and percentages
         ccy = df[df['CURRENCY_TYPE'] == 'FCY']
-        direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT    ']
+        direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT']
         contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTINGENT']
         missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
         sumof_all = df['OUTSTANDING BALANCE \n(USD)'].sum()
