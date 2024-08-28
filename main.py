@@ -265,9 +265,9 @@ async def process_Rwanda_file(file: UploadFile = File(...)):
         content = await file.read()
         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows = 5)
 
-        df['APPROVED AMOUNT'] = pd.to_numeric(df['APPROVED AMOUNT'], errors='coerce')
-        df['OUTSTANDING BALANCE'] = pd.to_numeric(df['OUTSTANDING BALANCE'], errors='coerce')
-        df['UNPAID AMOUNT'] = pd.to_numeric(df['UNPAID AMOUNT'], errors = 'coerce')
+        df['APPROVED AMOUNT'] = pd.to_numeric(df['APPROVED AMOUNT'], errors='coerce') * 1000
+        df['OUTSTANDING BALANCE'] = pd.to_numeric(df['OUTSTANDING BALANCE'], errors='coerce') * 1000
+        df['UNPAID AMOUNT'] = pd.to_numeric(df['UNPAID AMOUNT'], errors = 'coerce') * 1000
 
         # Aggregation for top 5 customers
         aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT', 'OUTSTANDING BALANCE', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
