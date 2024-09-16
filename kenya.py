@@ -63,15 +63,18 @@ async def process_Kenya_file_logic(file: UploadFile):
     pd.options.display.float_format = '{:,.2f}'.format
 
     # Aggregated data by customer name
+    
     aggregated_data = df.groupby('CUSTOMER NAME')[['SECTOR', 'APPROVED TOTAL FACILITY AMOUNT/LIMIT', 'TOTAL EXPOSURES(USD)', 'IFRS', 'CLASSIFICATION']].sum().reset_index()
     top5_customers = aggregated_data.sort_values(by='TOTAL EXPOSURES(USD)', ascending=False).head(5)
 
     # Calculate the FCY and percentages
     ccy = df[df['CURRENCY TYPE'] == 'FCY']
+    missed_repayments = df['MISSED INSTALLMENT'].sum() / 129
     fcy_direct = ccy['TOTAL DIRECT EXPOSURES(USD)'].sum()
     fcy_total = ccy['TOTAL EXPOSURES(USD)'].sum()
     sumof_direct = df['TOTAL DIRECT EXPOSURES(USD)'].sum()
     sumof_all = df['TOTAL EXPOSURES(USD)'].sum()
+    mrr = (missed_repayments / sumof_direct) * 100
     fcy_direct_percentage = (fcy_direct / sumof_direct) * 100 if sumof_direct != 0 else 0
     fcy_total_percentage = (fcy_total / sumof_all) * 100 if sumof_all != 0 else 0
 
@@ -110,9 +113,11 @@ async def process_Kenya_file_logic(file: UploadFile):
         "direct_exposure": sumof_direct,
         "contingent_exposure": sumof_contingent,
         "total_exposure": sumof_all,
+        "missed_repayments": missed_repayments,
         "ppl": ppl,
         "wpl": wpl,
         "npl": npl,
+        "mrr": mrr,
         "fcy_direct": fcy_direct,
         "fcy_total": fcy_total
     }
