@@ -81,9 +81,9 @@ async def process_Kenya_file_logic(file: UploadFile):
     fcy_total_percentage = (fcy_total / sumof_all) * 100 if sumof_all != 0 else 0
 
     # Calculate the stages
-    sumof_stage1 = df[df['IFRS'] == 'STAGE 1']['TOTAL EXPOSURES(USD)'].sum()
-    sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL EXPOSURES(USD)'].sum()
-    sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL EXPOSURES(USD)'].sum()
+    sumof_stage1 = df[df['IFRS'] == 'STAGE 1']['TOTAL DIRECT EXPOSURES(USD)'].sum()
+    sumof_stage2 = df[df['IFRS'] == 'STAGE 2']['TOTAL DIRECT EXPOSURES(USD)'].sum()
+    sumof_stage3 = df[df['IFRS'] == 'STAGE 3']['TOTAL DIRECT EXPOSURES(USD)'].sum()
     sumof_contingent = df['TOTAL CONTINGENT EXPOSURES(USD)'].sum()
 
     ppl = (sumof_stage1 / sumof_direct) * 100 if sumof_direct != 0 else 0
