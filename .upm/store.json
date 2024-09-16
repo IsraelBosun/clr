@@ -1,1 +1,0 @@
-{"version":2,"languages":{"nodejs-npm":{},"python-python3-poetry":{"specfileHash":"a798241accc5be5d08a76bbf859ff6bf","lockfileHash":"e2194490001ab3d375ded672e91b8c59","guessedImports":["uvicorn","fastapi","pandas"],"guessedImportsHash":"1540b94a63bcb2f8e406e336435a6d38"}}}

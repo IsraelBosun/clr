@@ -1,13 +1,22 @@
-.vercel
-# Python cache files
-__pycache__/
+# Node.js related
+.config/npm/
+node_modules/
+
+# Vercel CLI config
+.local/share/com.vercel.cli/
+.vercel/
+
+# Python related
 *.pyc
-*.pyo
-
-# Uvicorn and other Python package files
+__pycache__/
 .pythonlibs/
+.upm/
 
-# Other unnecessary files
-*.zip
+# Replit specific
+.replit
+replit.nix
+.cache/
+
+# Ignore ZIP or error logs
 *.log
-
+*.zip
