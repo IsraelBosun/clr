@@ -74,6 +74,8 @@ async def process_Kenya_file_logic(file: UploadFile):
     fcy_total = ccy['TOTAL EXPOSURES(USD)'].sum()
     sumof_direct = df['TOTAL DIRECT EXPOSURES(USD)'].sum()
     sumof_all = df['TOTAL EXPOSURES(USD)'].sum()
+    sumof_top5 = top5_customers['TOTAL EXPOSURES(USD)'].sum()
+    percentageof_top5 = (sumof_top5 / sumof_all) *100
     mrr = (missed_repayments / sumof_direct) * 100
     fcy_direct_percentage = (fcy_direct / sumof_direct) * 100 if sumof_direct != 0 else 0
     fcy_total_percentage = (fcy_total / sumof_all) * 100 if sumof_all != 0 else 0
@@ -119,7 +121,9 @@ async def process_Kenya_file_logic(file: UploadFile):
         "npl": npl,
         "mrr": mrr,
         "fcy_direct": fcy_direct,
-        "fcy_total": fcy_total
+        "fcy_total": fcy_total,
+        "percentage_of_top5": percentageof_top5,
+
     }
 
     return result
