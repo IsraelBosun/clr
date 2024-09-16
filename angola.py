@@ -7,14 +7,16 @@ async def process_Angola_file_logic(file: UploadFile):
         content = await file.read()
         df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows=2)
         
-        
+
         # Aggregation for top 5 customers
         aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR', 'FACILITY_TYPE', 'APPROVED AMOUNT (USD)', 'OUTSTANDING BALANCE \n(USD)', 'IFRS_CLASSIFICATION', 'PRUDENTIAL_CLASSIFICATION']].sum().reset_index()
         top5_customers = aggregateed_data.sort_values(by='OUTSTANDING BALANCE \n(USD)', ascending=False).head(5)
+        df['UNPAID AMOUNT (USD)'] = pd.to_numeric(df['UNPAID AMOUNT (USD)'], errors='coerce')
+
         
         # Calculate sums and percentages
         ccy = df[df['CURRENCY_TYPE'] == 'FCY']
-        direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT']
+        direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT    ']
         contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTINGENT']
         missed_repayments = df['UNPAID AMOUNT (USD)'].sum()
         sumof_all = df['OUTSTANDING BALANCE \n(USD)'].sum()

@@ -19,7 +19,7 @@ async def process_Rwanda_file_logic(file: UploadFile):
   # Calculate sums and percentages
   ccy = df[df['CURRENCY_TYPE'] == 'FCY']
   direct_exp = df[df['EXPOSURE_TYPE'] == 'DIRECT']
-  contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTINGENT']
+  contingent_exp = df[df['EXPOSURE_TYPE'] == 'CONTIGENTS']
   missed_repayments = df['UNPAID AMOUNT'].sum()
   sumof_all = df['OUTSTANDING BALANCE'].sum()
   fcy_total = ccy['OUTSTANDING BALANCE'].sum()

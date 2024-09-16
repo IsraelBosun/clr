@@ -12,6 +12,7 @@ from mozambique import process_Mozambique_file_logic
 from tanzania import process_Tanzania_file_logic
 from cameroon import process_Cameroon_file_logic
 from zambia import process_Zambia_file_logic
+from kenya import process_Kenya_file_logic
 from sierraLeone import process_SierraLeone_file_logic
 import pandas as pd
 from io import BytesIO
@@ -27,6 +28,18 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+@app.post("/kenya")
+async def process_Kenya_file(file: UploadFile = File(...)):
+    try:
+        result = await process_Kenya_file_logic(file)
+        return result
+    except Exception as e:
+        error_message = f"An error occurred: {str(e)}"
+        print(error_message)
+        print(traceback.format_exc())  # This will print the full stack trace
+        raise HTTPException(status_code=500, detail=error_message)
+  
 
 
 @app.post("/botswana")
@@ -184,6 +197,7 @@ async def process_Sierra_Leone_file(file: UploadFile = File(...)):
         print(error_message)
         print(traceback.format_exc())  # This will print the full stack trace
         raise HTTPException(status_code=500, detail=error_message)
+
 
 
 if __name__ == "__main__":
