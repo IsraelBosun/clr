@@ -1,1 +1,13 @@
 .vercel
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Uvicorn and other Python package files
+.pythonlibs/
+
+# Other unnecessary files
+*.zip
+*.log
+
