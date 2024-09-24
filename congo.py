@@ -8,6 +8,8 @@ async def process_Congo_file_logic(file: UploadFile):
   df = pd.read_excel(BytesIO(content), sheet_name='CLR', skiprows = 7)
   
   df['TOTAL UNPAID'] = pd.to_numeric(df['TOTAL UNPAID'], errors='coerce')
+  df['TOTAL AMOUNT'] = pd.to_numeric(df['TOTAL AMOUNT'], errors='coerce')
+  df['APPROVED AMOUNT'] = pd.to_numeric(df['APPROVED AMOUNT'], errors='coerce')
   
   # Aggregation for top 5 customers
   aggregateed_data = df.groupby('CUSTOMER_NAME')[['SECTOR ', 'FACILITY  TYPE', 'APPROVED AMOUNT', 'TOTAL AMOUNT', 'IFRS  CLASSIFICATION', 'BANK CLASSIFICATION  AS AT TODAY ']].sum().reset_index()
